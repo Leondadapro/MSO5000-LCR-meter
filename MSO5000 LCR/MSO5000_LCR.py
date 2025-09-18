@@ -84,6 +84,7 @@ while True:
     match n:
         case "1":
             print("sus")
+            ImpedanceCalculation()
         case "2":
             print("sus")
         case "3":
