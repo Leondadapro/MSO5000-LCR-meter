@@ -4,19 +4,30 @@ import os
 import numpy as np
 import math
 import pyvisa
+from enum import Enum
 
-Rounded = 2  #Decimal places for rounding
+class State(Enum):
+    # All of the text dialog variables
+    Start_text = 1
+    Pick_text1 = 2
+    Pick_text2 = 3
 
-Voltage =       0  #Voltage for Graphing
-Current =       1  #Current for Graphing
-Frequency =     2  #Frequency for Graphing
-PhaseOffset =   3  #Phase Offset for Graphing
-Impedance_abs = 4  #Impedance for Graphing
-Impedance =     5  #Complex Impedance for Graphing
-Resistance =    6  #Resistance for Graphing
-Blind =         7  #Blindwiderstand for Graphing
+    # Random ah constants
+    Voltage =       0  #Voltage for Graphing
+    Current =       1  #Current for Graphing
+    Frequency =     2  #Frequency for Graphing
+    PhaseOffset =   3  #Phase Offset for Graphing
+    Impedance_abs = 4  #Impedance for Graphing
+    Impedance =     5  #Complex Impedance for Graphing
+    Resistance =    6  #Resistance for Graphing
+    Blind =         7  #Blindwiderstand for Graphing
 
-def ImpedanceCalculation():
+    # Random ah variables
+    Rounded = 2  #Decimal places for rounding
+
+Repeat = 0;
+
+def Impedance_Calculation():
     dfCal = pd.read_excel('Clean.xlsx') #Cleaned data from MSO5000
     dfCalRounded = dfCal.copy()         #Copy of dataframe for rounded values
     Xmax = dfCal.shape[1]       #Number of columns
@@ -41,14 +52,14 @@ def ImpedanceCalculation():
         dfCal.iloc[Y,X+6] = Resistance      #Storing Resistance in Ohm
         dfCal.iloc[Y,X+7] = Blind           #Storing Blindwiderstand in Ohm
 
-        Rounded_Voltage =       round(Voltage, Rounded)                                 #Rounding Voltage to Rounded decimal places
-        Rounded_Current =       round(Current * 1000, Rounded)                          #Rounding Current to Rounded decimal places and convert A to mA
-        Rounded_Frequeny =      round(Frequenzy, Rounded)                               #Rounding Frequency to Rounded decimal places
-        Rounded_PhaseOffset =   round(PhaseOffset, Rounded)                             #Rounding Phase Offset to Rounded decimal places
-        Rounded_Impedance_abs = round(Impedance_abs, Rounded)                           #Rounding Impedance to Rounded decimal places
-        Rounded_Impedance =     round(Resistance, Rounded) + round(Blind, Rounded)*1j   #Rounding Complex Impedance to Rounded decimal places
-        Rounded_Resistance =    round(Resistance, Rounded)                              #Rounding Resistance to Rounded decimal places
-        Rounded_Blind =         round(Blind, Rounded)                                   #Rounding Blindwiderstand to Rounded decimal places
+        Rounded_Voltage =       round(Voltage, State.Rounded)                                 #Rounding Voltage to Rounded decimal places
+        Rounded_Current =       round(Current * 1000, State.Rounded)                          #Rounding Current to Rounded decimal places and convert A to mA
+        Rounded_Frequeny =      round(Frequenzy, State.Rounded)                               #Rounding Frequency to Rounded decimal places
+        Rounded_PhaseOffset =   round(PhaseOffset, State.Rounded)                             #Rounding Phase Offset to Rounded decimal places
+        Rounded_Impedance_abs = round(Impedance_abs, State.Rounded)                           #Rounding Impedance to Rounded decimal places
+        Rounded_Impedance =     round(Resistance, State.Rounded) + round(Blind, State.Rounded)*1j   #Rounding Complex Impedance to Rounded decimal places
+        Rounded_Resistance =    round(Resistance, State.Rounded)                              #Rounding Resistance to Rounded decimal places
+        Rounded_Blind =         round(Blind, State.Rounded)                                   #Rounding Blindwiderstand to Rounded decimal places
 
         dfCalRounded.iloc[Y,X]   = Rounded_Voltage
         dfCalRounded.iloc[Y,X+1] = Rounded_Current
@@ -63,29 +74,52 @@ def ImpedanceCalculation():
     dfCal.to_excel("Clean_Calc.xlsx", index = False)                    #Saving new data to new file
     dfCalRounded.to_excel("Clean_Calc_Rounded.xlsx", index = False)     #Saving new data to new file
 
+def TXT_Dialog(n):                   #All of the text dialog stuff
+    match n:
+        case State.Start_text:
+            print(  "Hello and Welcome to the MSO5000 LCR Measurement Tool\n"
+                    "This tool helps you to measure and analyze LCR components with the MSO5000\n\n\n")
 
-# ImpedanceCalculation()  #Calculate Impedance
-# df = pd.read_excel('Clean_Calc_Rounded.xlsx')   #Cleaned, Calculated and Rounded data from MSO5000
-# print(df)
-# plt.plot(df.iloc[:,Frequency], df.iloc[:,Impedance_abs], label="Impedance")
-# plt.show()
+        case State.Pick_text1:
+            print(  "What do u wanna do? (Pick from List)\n\n")
+            print(  "1 : Measure LCR Component\n"
+                    "2 : Analyze / Calculate existing Measurement\n"
+                    "99: Exit Program\n\n")
+
+        case State.Pick_text2:
+            print(  "What do u wanna do? (Pick from List)\n\n")
+            print(  "1 : Calculate Data and export as Excel Files\n"
+                    "2 : Plot Data\n"
+                    "3 : Both Calculate and Plot Data\n"
+                    "99: Exit to Main Menu\n\n")
+
+def clear():
+    os.system('cls')
+    
+
+
 while True:
+    TXT_Dialog(State.Start_text)    # Starting Text
+    TXT_Dialog(State.Pick_text1)    # pick from list text
 
-    print("Hello and Welcome to the MSO5000 LCR Measurement Tool\n"
-          "This tool helps you to measure and analyze LCR components with the MSO5000\n\n\n")
-
-    print("What do u wanna do? (Pick from List)\n\n")
-    print("1: Measure LCR Component\n"
-          "2: Analyze existing Measurement\n"
-          "3: Exit Program\n\n")
-    n = input("Your Input: ")
-    print("\nYour Input: ",n)
+    n = input("Your Input: ")       # User Input
     
     match n:
         case "1":
-            print("sus")
-            ImpedanceCalculation()
+            print("Measure LCR Component")
+            
+            
+
         case "2":
-            print("sus")
-        case "3":
-            print("sus")
+            print("Analyze / Calculate existing Measurement")
+
+            Repeat = 1
+            while (Repeat == 1):
+                TXT_Dialog(State.Pick_text2)            # pick from list text
+                User_Input = input("Your Input: ")      # User Input
+                if(User_Input == "99"):
+                    Repeat = 0
+            
+        case "99":
+            print("Exit Program")
+
