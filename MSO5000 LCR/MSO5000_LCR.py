@@ -56,7 +56,7 @@ def Save_Settings(Rounded, Time_Delay):
     dfSettings = pd.read_excel('Settings_Custom.xlsx', header = None)
     dfSettings.iloc[0,1] = int(Rounded)      #Decimal places for rounding
     dfSettings.iloc[1,1] = float(Time_Delay)   #Time Delay for better UX in seconds
-    dfSettings.to_excel("Settings_Custom.xlsx", index = False) #Saving Settings to Excel File
+    dfSettings.to_excel("Settings_Custom.xlsx", index=False, header=False) #Saving Settings to Excel File
 
 def Impedance_Calculation():    #Calculating Impedance, Resistance and Blindwiderstand from Voltage, Current, Frequency and Phase Offset
     dfCal = pd.read_excel('Clean.xlsx') #Cleaned data from MSO5000
