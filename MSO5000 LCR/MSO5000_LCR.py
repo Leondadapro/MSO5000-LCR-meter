@@ -141,55 +141,57 @@ def TXT_Dialog(n):                   #All of the text dialog stuff
                     "99: Go back\n\n")
 
 def Clear_CLI():
-    print("\033[2J\033[H", end='')  # Clear screen + move cursor to top-left
+    print("\033[2J\033[H", end='')  #Clear screen + move cursor to top-left
 
 Rounded, Time_Delay = Call_Settings("Custom")  #Calling Custom Settings at the start of the program
 Clear_CLI()
 
 while True:
     Clear_CLI()
-    TXT_Dialog(State.Start_Text)    # Starting Text
-    TXT_Dialog(State.Pick_Text1)    # pick from list text
+    TXT_Dialog(State.Start_Text)    #Starting Text
+    TXT_Dialog(State.Pick_Text1)    #pick from list text
 
-    n = input("Your Input: ")       # User Input
+    n = input("Your Input: ")       #User Input
     
     match n:
-        case "1":
+        case "1":   #Measure LCR Component (WIP)
 
             Clear_CLI()
             print("Measure LCR Component")
             
-        case "2":
+        case "2":   #Analyze / Calculate existing Measurement
 
             Clear_CLI()
             print("Analyze / Calculate existing Measurement")
 
             Repeat = 1
             while (Repeat == 1):
-                TXT_Dialog(State.Pick_Text2)            # pick from list text
-                User_Input = input("Your Input: ")      # User Input
+                Clear_CLI()
+                TXT_Dialog(State.Pick_Text2)            #pick from list text
+                User_Input = input("Your Input: ")      #User Input
                 
                 match User_Input:
 
-                    case "1":
+                    case "1": #Calculate Data and export as Excel Files
                         Clear_CLI()
                         print("Calculate Data and export as Excel Files")
+                        Impedance_Calculation()
 
-                    case "2":
+                    case "2": #Plot Data (WIP)
                         Clear_CLI()
                         print("Plot Data")
 
-                    case "3":
+                    case "3": #Both Calculate and Plot Data (WIP)
                         Clear_CLI()
                         print("Both Calculate and Plot Data")
 
-                    case "99":
+                    case "99": #Go back
                         Clear_CLI()
                         Repeat = 0
                         print("Exit to Main Menu")
                         time.sleep(Time_Delay)
 
-        case "3":
+        case "3":   #Settings
             Clear_CLI()
             Repeat = 1
             while (Repeat == 1):
@@ -266,5 +268,5 @@ while True:
             Clear_CLI()
             print("Exit Program")
             time.sleep(Time_Delay) #Short Delay for better UX
-            sys.exit()      #Exit Program
+            sys.exit()#Exit Program
 
