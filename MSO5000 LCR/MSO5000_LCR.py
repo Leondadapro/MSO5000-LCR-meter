@@ -9,11 +9,22 @@ import subprocess
 import numpy as np
 import math
 import pyvisa
+import msvcrt
 from enum import Enum
 
-Rounded     = 2     #Decimal places for rounding
-Time_Delay  = 1     #Time Delay for better UX
+Rounded     = 0     #Decimal places for rounding
+Time_Delay  = 0     #Time Delay for better UX
 Repeat      = 0     #Variable for repeating loops
+
+if (True):
+    Base_Dir = os.path.dirname(os.path.abspath(__file__))
+    print("Base Directory:\t", Base_Dir)
+
+    Settings_Path = os.path.join(Base_Dir, "Settings")
+    print("Settings Directory:\t", Settings_Path)
+
+    Data_Path = os.path.join(Base_Dir, "Data")
+    print("Data Directory:\t", Data_Path)   # Create Data Directory if it doesn't exist
 
 class State(Enum):
     # All of the text dialog variables
@@ -35,31 +46,64 @@ class State(Enum):
 
     # Random ah variables
 
-def Call_Settings(Type):    #Calling Settings from Excel File
-    if   ((Type == "Custom") or (Type == "RND")):
-        dfSettings = pd.read_excel('Settings_Custom.xlsx', header = None) #Custom Settings from Excel File
+def Settings(Type, What, dfData):    #Calling Settings from Excel File
+    match Type:
+        case "Default":
 
-    elif (Type == "Default"):
-        dfSettings = pd.read_excel('Settings_Default.xlsx', header = None) #Default Settings from Excel File
+            file_path = os.path.join(Settings_Path, "Settings_Default.xlsx")
+            dfSettings = pd.read_excel(file_path, header=None, index_col=None)
+            
+            if(What == "Load"):
+                Rounded     = int(dfSettings.iloc[0,1])
+                Time_Delay  = float(dfSettings.iloc[1,1])
 
+                file_path_current = os.path.join(Settings_Path, "Settings_Current.xlsx")
+                dfSettingsCurrent = dfSettings
+                dfSettingsCurrent.to_excel(file_path_current, index = False, header=None)
 
-    Rounded = int(dfSettings.iloc[0,1])      #Decimal places for rounding
-    Time_Delay = dfSettings.iloc[1,1]   #Time Delay for better UX in seconds
+                return Rounded, Time_Delay
 
-    if (Type == "RND"):
-        print("\nRounded Decimal Places\t\t: ", Rounded)
-        print("\nTime Delay when going back\t: ", Time_Delay)
+        case "Custom":
 
-    return Rounded, Time_Delay
+            file_path = os.path.join(Settings_Path, "Settings_Custom.xlsx")
+            dfSettings = pd.read_excel(file_path, header=None, index_col=None)
 
-def Save_Settings(Rounded, Time_Delay):
-    dfSettings = pd.read_excel('Settings_Custom.xlsx', header = None)
-    dfSettings.iloc[0,1] = int(Rounded)      #Decimal places for rounding
-    dfSettings.iloc[1,1] = float(Time_Delay)   #Time Delay for better UX in seconds
-    dfSettings.to_excel("Settings_Custom.xlsx", index=False, header=False) #Saving Settings to Excel File
+            if(What == "Load"):
+                Rounded     = int(dfSettings.iloc[0,1])
+                Time_Delay  = float(dfSettings.iloc[1,1])
+
+                file_path_current = os.path.join(Settings_Path, "Settings_Current.xlsx")
+                dfSettingsCurrent = dfSettings
+                dfSettingsCurrent.to_excel(file_path_current, index = False, header=None)
+
+                return Rounded, Time_Delay
+
+            if(What == "Save"):
+                dfSettings = dfData
+                file_path_current = os.path.join(Settings_Path, "Settings_Current.xlsx")
+                dfSettings.to_excel(file_path, index = False, header=None)
+                dfSettings.to_excel(file_path_current, index = False, header=None)
+
+        case "Current":
+
+            file_path = os.path.join(Settings_Path, "Settings_Current.xlsx")
+            dfSettings = pd.read_excel(file_path, header=None, index_col=None)
+
+            if(What == "Show"):
+                print(dfSettings)
+
+            if(What == "Save"):
+                dfData.to_excel(file_path, index = False, header=None)
+
+            if(What == "Load"):
+                Rounded     = int(dfSettings.iloc[0,1])
+                Time_Delay  = float(dfSettings.iloc[1,1])
+
+                return Rounded, Time_Delay
 
 def Impedance_Calculation():    #Calculating Impedance, Resistance and Blindwiderstand from Voltage, Current, Frequency and Phase Offset
-    dfCal = pd.read_excel('Clean.xlsx') #Cleaned data from MSO5000
+    file_path = os.path.join(Data_Path, "Clean.xlsx")
+    dfCal = pd.read_excel(file_path) #Cleaned data from MSO5000
     dfCalRounded = dfCal.copy()         #Copy of dataframe for rounded values
     Xmax = dfCal.shape[1]       #Number of columns
     Ymax = dfCal.shape[0] - 1   #Number of rows
@@ -102,8 +146,10 @@ def Impedance_Calculation():    #Calculating Impedance, Resistance and Blindwide
         dfCalRounded.iloc[Y,X+7] = Rounded_Blind
 
         Y += 1  #Next Row
-    dfCal.to_excel("Clean_Calc.xlsx", index = False)                    #Saving new data to new file
-    dfCalRounded.to_excel("Clean_Calc_Rounded.xlsx", index = False)     #Saving new data to new file
+    file_path = os.path.join(Data_Path, "Clean_Calc.xlsx")
+    dfCal.to_excel(file_path, index = False)                    #Saving new data to new file
+    file_path = os.path.join(Data_Path, "Clean_Calc_Rounded.xlsx")
+    dfCalRounded.to_excel(file_path, index = False)     #Saving new data to new file
 
 def TXT_Dialog(n):                   #All of the text dialog stuff
     match n:
@@ -143,8 +189,9 @@ def TXT_Dialog(n):                   #All of the text dialog stuff
 def Clear_CLI():
     print("\033[2J\033[H", end='')  #Clear screen + move cursor to top-left
 
-Rounded, Time_Delay = Call_Settings("Custom")  #Calling Custom Settings at the start of the program
+Rounded, Time_Delay = Settings("Custom", "Load", 0)   #Load Current Settings
 Clear_CLI()
+
 
 while True:
     Clear_CLI()
@@ -203,21 +250,30 @@ while True:
                     case "1":   #Load Default Settings
                         Clear_CLI()
                         print("Loaded Default Settings")
-                        Rounded, Time_Delay = Call_Settings("Default")
+
+                        Rounded, Time_Delay = Settings("Default", "Load", 0)
+
                         time.sleep(Time_Delay)
 
                     case "2":   #Load Custom Settings
                         Clear_CLI()
                         print("Loaded Custom Settings")
-                        Rounded, Time_Delay = Call_Settings("Custom")
+                        
+                        Rounded, Time_Delay = Settings("Custom", "Load", 0)
+
                         time.sleep(Time_Delay)
 
                     case "3":   #Show Current Settings
                         Clear_CLI()
-                        Rounded, Time_Delay = Call_Settings("RND") #Calling current settings
-                        time.sleep(5)
+                        print("Current Settings:\n\n")
+
+                        Settings("Current", "Show", 0)
+                        print("\n\nPress anything to go back")
+                        msvcrt.getch()
 
                     case "4":   #Change Settings
+                        file_path = os.path.join(Settings_Path, "Settings_Current.xlsx")
+                        dfData = pd.read_excel(file_path, header=None, index_col=None)
                         again = 1
                         while (again == 1):
                             again = 0
@@ -232,6 +288,7 @@ while True:
                                     print("Change Decimal Places")
                                     New_Value = input("Enter new value (Current: " + str(Rounded) + "): ")
                                     Rounded = int(New_Value)
+                                    dfData.iloc[0,1] = Rounded
                                     print("Decimal Places changed to: ", Rounded)
                                     print("\n\ndo you wana change more settings?")
                                     again = int(input("2 = yes / 1 = no: ")) - 1
@@ -241,6 +298,7 @@ while True:
                                     print("Change Time Delay")
                                     New_Value = input("Enter new value (Current: " + str(Time_Delay) + "s): ")
                                     Time_Delay = float(New_Value)
+                                    dfData.iloc[1,1] = Time_Delay
                                     print("Time Delay changed to: ", Time_Delay, "s")
                                     print("\n\ndo you wana change more settings?")
                                     again = int(input("2 = yes / 1 = no: ")) - 1
@@ -250,11 +308,14 @@ while True:
                                     again = 0
                                     print("Go back")
                                     time.sleep(Time_Delay)
+                        Settings ("Current", "Save", dfData)
 
                     case "5":   #Save Current Settings as Custom Settings
                         Clear_CLI()
                         print("Save Current Settings as Custom Settings")
-                        Save_Settings(Rounded, Time_Delay)
+                        file_path = os.path.join(Settings_Path, "Settings_Current.xlsx")
+                        dfData = pd.read_excel(file_path, header=None, index_col=None)
+                        Settings("Custom", "Save", dfData)
                         print("\nCurrent Settings saved as Custom Settings")
                         time.sleep(Time_Delay)
 
