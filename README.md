@@ -1,5 +1,5 @@
 # MSO5000-LCR-meter  
-an automatic LCR meter for the MSO5000.  
+An automatic LCR meter for the MSO5000.  
   
 # Roadmap  
 The Roadmap might be updated while working on this.
