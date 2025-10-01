@@ -9,7 +9,7 @@ The Roadmap might be updated while working on this.
 [x]	Impedance calculations kinda working  
 [x]	Home menu  
 [x]	Fully working settings  
-[ ]	Debug setting  
+[x]	Debug setting  
 [ ]	Adding prefixes  
 [ ]	Cleaning up the code
 
