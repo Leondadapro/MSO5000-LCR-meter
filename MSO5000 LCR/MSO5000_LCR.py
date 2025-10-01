@@ -1,4 +1,5 @@
 from calendar import c
+from re import DEBUG
 import sys
 from turtle import clear
 import pandas as pd
@@ -14,17 +15,8 @@ from enum import Enum
 
 Rounded     = 0     #Decimal places for rounding
 Time_Delay  = 0     #Time Delay for better UX
+Debug       = 0     #Debug Variable
 Repeat      = 0     #Variable for repeating loops
-
-if (True):
-    Base_Dir = os.path.dirname(os.path.abspath(__file__))
-    print("Base Directory:\t", Base_Dir)
-
-    Settings_Path = os.path.join(Base_Dir, "Settings")
-    print("Settings Directory:\t", Settings_Path)
-
-    Data_Path = os.path.join(Base_Dir, "Data")
-    print("Data Directory:\t", Data_Path)   # Create Data Directory if it doesn't exist
 
 class State(Enum):
     # All of the text dialog variables
@@ -46,39 +38,46 @@ class State(Enum):
 
     # Random ah variables
 
-def Settings(Type, What, dfData):    #Calling Settings from Excel File
+if (True):
+    Base_Dir = os.path.dirname(os.path.abspath(__file__))
+    Settings_Path = os.path.join(Base_Dir, "Settings")
+    Data_Path = os.path.join(Base_Dir, "Data")
+
+def Settings(Type, What, dfData):   # Calling Settings from Excel File
     match Type:
         case "Default":
 
             file_path = os.path.join(Settings_Path, "Settings_Default.xlsx")
             dfSettings = pd.read_excel(file_path, header=None, index_col=None)
             
-            if(What == "Load"):
+            if(What == "Load"): # Load Default Settings
                 Rounded     = int(dfSettings.iloc[0,1])
                 Time_Delay  = float(dfSettings.iloc[1,1])
+                Debug       = str(dfSettings.iloc[2,1])
 
                 file_path_current = os.path.join(Settings_Path, "Settings_Current.xlsx")
                 dfSettingsCurrent = dfSettings
                 dfSettingsCurrent.to_excel(file_path_current, index = False, header=None)
 
-                return Rounded, Time_Delay
+                return Rounded, Time_Delay, Debug
 
         case "Custom":
 
             file_path = os.path.join(Settings_Path, "Settings_Custom.xlsx")
             dfSettings = pd.read_excel(file_path, header=None, index_col=None)
-
-            if(What == "Load"):
+            
+            if(What == "Load"): # Load Custom Settings
                 Rounded     = int(dfSettings.iloc[0,1])
                 Time_Delay  = float(dfSettings.iloc[1,1])
+                Debug       = str(dfSettings.iloc[2,1])
 
                 file_path_current = os.path.join(Settings_Path, "Settings_Current.xlsx")
                 dfSettingsCurrent = dfSettings
                 dfSettingsCurrent.to_excel(file_path_current, index = False, header=None)
 
-                return Rounded, Time_Delay
+                return Rounded, Time_Delay, Debug
 
-            if(What == "Save"):
+            if(What == "Save"): # Save Custom Settings
                 dfSettings = dfData
                 file_path_current = os.path.join(Settings_Path, "Settings_Current.xlsx")
                 dfSettings.to_excel(file_path, index = False, header=None)
@@ -89,35 +88,38 @@ def Settings(Type, What, dfData):    #Calling Settings from Excel File
             file_path = os.path.join(Settings_Path, "Settings_Current.xlsx")
             dfSettings = pd.read_excel(file_path, header=None, index_col=None)
 
-            if(What == "Show"):
+            if(What == "Show"): # Show Current Settings
                 print(dfSettings)
 
-            if(What == "Save"):
+            if(What == "Save"): # Save Current Settings
                 dfData.to_excel(file_path, index = False, header=None)
 
-            if(What == "Load"):
+            if(What == "Load"): # Load Current Settings
                 Rounded     = int(dfSettings.iloc[0,1])
                 Time_Delay  = float(dfSettings.iloc[1,1])
+                Debug       = str(dfSettings.iloc[2,1])
 
-                return Rounded, Time_Delay
+                return Rounded, Time_Delay, Debug
 
-def Impedance_Calculation():    #Calculating Impedance, Resistance and Blindwiderstand from Voltage, Current, Frequency and Phase Offset
-    file_path = os.path.join(Data_Path, "Clean.xlsx")
-    dfCal = pd.read_excel(file_path) #Cleaned data from MSO5000
-    dfCalRounded = dfCal.copy()         #Copy of dataframe for rounded values
-    Xmax = dfCal.shape[1]       #Number of columns
-    Ymax = dfCal.shape[0] - 1   #Number of rows
+def Impedance_Calculation():        # Calculating Impedance, Resistance and Blindwiderstand from Voltage, Current, Frequency and Phase Offset
+    file_path = os.path.join(Data_Path, "Clean.xlsx")   # Cleaned data from MSO5000
+    dfCal = pd.read_excel(file_path)                    # Cleaned data from MSO5000
+    dfCalRounded = dfCal.copy() # Copy of dataframe for rounded values
+    Xmax = dfCal.shape[1]       # Number of columns
+    Ymax = dfCal.shape[0] - 1   # Number of rows
     X = 0
     Y = 0
-    print("Xmax =", Xmax)
-    print("Ymax =", Ymax)
+    if (Debug == "yes"):    # Debug Messages
+        print("Xmax =", Xmax)
+        print("Ymax =", Ymax)
+
     while (Y <= Ymax):                      #Calculating Impedance, Resistance and Blind for each measurement point
         Voltage = dfCal.iloc[Y,X]           #reading Voltage
-        Current = dfCal.iloc[Y,X+1] / 1000  #reading Current Convert mA to A
+        Current = dfCal.iloc[Y,X+1]         #reading Current
         Frequenzy = dfCal.iloc[Y,X+2]       #reading Frequency
         PhaseOffset = dfCal.iloc[Y, X+3]    #reading Phase Offset
 
-        Impedance_abs = Voltage / Current   #Calculating Impedance in Ohm
+        Impedance_abs = Voltage / Current                                   #Calculating Impedance in Ohm
         Resistance  = math.cos(math.radians(PhaseOffset)) * Impedance_abs   #Calculating Resistance in Ohm
         Blind       = math.sin(math.radians(PhaseOffset)) * Impedance_abs   #Calculating Blindwiderstand in Ohm
         Impedance   = complex(Resistance, Blind)                            #Calculating Complex Impedance in Ohm
@@ -127,15 +129,17 @@ def Impedance_Calculation():    #Calculating Impedance, Resistance and Blindwide
         dfCal.iloc[Y,X+6] = Resistance      #Storing Resistance in Ohm
         dfCal.iloc[Y,X+7] = Blind           #Storing Blindwiderstand in Ohm
 
-        Rounded_Voltage =       round(Voltage, Rounded)                                 #Rounding Voltage to Rounded decimal places
-        Rounded_Current =       round(Current * 1000, Rounded)                          #Rounding Current to Rounded decimal places and convert A to mA
-        Rounded_Frequeny =      round(Frequenzy, Rounded)                               #Rounding Frequency to Rounded decimal places
-        Rounded_PhaseOffset =   round(PhaseOffset, Rounded)                             #Rounding Phase Offset to Rounded decimal places
-        Rounded_Impedance_abs = round(Impedance_abs, Rounded)                           #Rounding Impedance to Rounded decimal places
-        Rounded_Impedance =     round(Resistance, Rounded) + round(Blind, Rounded)*1j   #Rounding Complex Impedance to Rounded decimal places
-        Rounded_Resistance =    round(Resistance, Rounded)                              #Rounding Resistance to Rounded decimal places
-        Rounded_Blind =         round(Blind, Rounded)                                   #Rounding Blindwiderstand to Rounded decimal places
+        # Rounding all values to the specified decimal places in settings
+        Rounded_Voltage =       round(Voltage, Rounded)
+        Rounded_Current =       round(Current, Rounded)
+        Rounded_Frequeny =      round(Frequenzy, Rounded)
+        Rounded_PhaseOffset =   round(PhaseOffset, Rounded)
+        Rounded_Impedance_abs = round(Impedance_abs, Rounded)
+        Rounded_Impedance =     round(Resistance, Rounded) + round(Blind, Rounded)*1j
+        Rounded_Resistance =    round(Resistance, Rounded)
+        Rounded_Blind =         round(Blind, Rounded)
 
+        # Storing rounded values in new dataframe
         dfCalRounded.iloc[Y,X]   = Rounded_Voltage
         dfCalRounded.iloc[Y,X+1] = Rounded_Current
         dfCalRounded.iloc[Y,X+2] = Rounded_Frequeny
@@ -146,32 +150,32 @@ def Impedance_Calculation():    #Calculating Impedance, Resistance and Blindwide
         dfCalRounded.iloc[Y,X+7] = Rounded_Blind
 
         Y += 1  #Next Row
-    file_path = os.path.join(Data_Path, "Clean_Calc.xlsx")
-    dfCal.to_excel(file_path, index = False)                    #Saving new data to new file
-    file_path = os.path.join(Data_Path, "Clean_Calc_Rounded.xlsx")
-    dfCalRounded.to_excel(file_path, index = False)     #Saving new data to new file
+    file_path = os.path.join(Data_Path, "Clean_Calc.xlsx")          # Exporting calculated data to Excel File
+    dfCal.to_excel(file_path, index = False)
+    file_path = os.path.join(Data_Path, "Clean_Calc_Rounded.xlsx")  # Exporting calculated data to Excel File
+    dfCalRounded.to_excel(file_path, index = False)
 
-def TXT_Dialog(n):                   #All of the text dialog stuff
+def TXT_Dialog(n):                  # All of the text dialog stuff
     match n:
-        case State.Start_Text:
+        case State.Start_Text:          #Starting Text
             print(  "Hello and Welcome to the MSO5000 LCR Measurement Tool\n"
                     "This tool helps you to measure and analyze LCR components with the MSO5000\n\n\n")
 
-        case State.Pick_Text1:
+        case State.Pick_Text1:          # Main Menu
             print(  "What do u wanna do? (Pick from List)\n\n")
             print(  "1 : Measure LCR Component\n"
                     "2 : Analyze / Calculate existing Measurement\n"
                     "3 : Settings\n"
                     "99: Exit Program\n\n")
 
-        case State.Pick_Text2:
+        case State.Pick_Text2:          # Analyze / Calculate existing Measurement Menu
             print(  "What do u wanna do? (Pick from List)\n\n")
             print(  "1 : Calculate Data and export as Excel Files\n"
                     "2 : Plot Data\n"
                     "3 : Both Calculate and Plot Data\n"
                     "99: Go back\n\n")
 
-        case State.Pick_Text3:
+        case State.Pick_Text3:          # Settings Menu
             print(  "Settings Menu\n\n"
                     "1 : Load Default Settings\n"
                     "2 : Load Custom Settings\n"
@@ -180,20 +184,25 @@ def TXT_Dialog(n):                   #All of the text dialog stuff
                     "5 : Save Current Settings as Custom Settings\n"
                     "99: Go back\n\n")
 
-        case State.Pick_Text_Setting:
+        case State.Pick_Text_Setting:   # Settings changing menu
             print(  "What Settings do you wanna change?\n\n"
                     "1 : Decimal places for rounding (Current: " + str(Rounded) + ")\n"
                     "2 : Time Delay when going back (Current: " + str(Time_Delay) + "s)\n"
+                    "3 : Debug Messages (Current: " + str(Debug) + ")\n"
                     "99: Go back\n\n")
 
-def Clear_CLI():
-    print("\033[2J\033[H", end='')  #Clear screen + move cursor to top-left
+def Clear_CLI():                    # Clear screen + move cursor to top-left
+    print("\033[2J\033[H", end='')
 
-Rounded, Time_Delay = Settings("Custom", "Load", 0)   #Load Current Settings
+Rounded, Time_Delay, Debug = Settings("Custom", "Load", 0) #Load Current Settings
 Clear_CLI()
 
+if (True):  # Debug Messages
+    if (Debug == "yes"):    print("Base Directory:\t\t"  , Base_Dir     )
+    if (Debug == "yes"):    print("Settings Directory:\t", Settings_Path)
+    if (Debug == "yes"):    print("Data Directory:\t\t"  , Data_Path    )
 
-while True:
+while True: # Main Loop
     Clear_CLI()
     TXT_Dialog(State.Start_Text)    #Starting Text
     TXT_Dialog(State.Pick_Text1)    #pick from list text
@@ -201,12 +210,12 @@ while True:
     n = input("Your Input: ")       #User Input
     
     match n:
-        case "1":   #Measure LCR Component (WIP)
+        case "1":   # Measure LCR Component (WIP)
 
             Clear_CLI()
             print("Measure LCR Component")
             
-        case "2":   #Analyze / Calculate existing Measurement
+        case "2":   # Analyze / Calculate existing Measurement
 
             Clear_CLI()
             print("Analyze / Calculate existing Measurement")
@@ -238,7 +247,7 @@ while True:
                         print("Exit to Main Menu")
                         time.sleep(Time_Delay)
 
-        case "3":   #Settings
+        case "3":   # Settings
             Clear_CLI()
             Repeat = 1
             while (Repeat == 1):
@@ -251,15 +260,15 @@ while True:
                         Clear_CLI()
                         print("Loaded Default Settings")
 
-                        Rounded, Time_Delay = Settings("Default", "Load", 0)
+                        Rounded, Time_Delay, Debug = Settings("Default", "Load", 0)
 
                         time.sleep(Time_Delay)
 
                     case "2":   #Load Custom Settings
                         Clear_CLI()
                         print("Loaded Custom Settings")
-                        
-                        Rounded, Time_Delay = Settings("Custom", "Load", 0)
+
+                        Rounded, Time_Delay, Debug = Settings("Custom", "Load", 0)
 
                         time.sleep(Time_Delay)
 
@@ -303,6 +312,17 @@ while True:
                                     print("\n\ndo you wana change more settings?")
                                     again = int(input("2 = yes / 1 = no: ")) - 1
 
+                                case "3":   #Debug Messages
+                                    Clear_CLI()
+                                    print("Do u want Debug Messages")
+                                    New_Value = input("Enter new value (Current: " + str(Debug) + ") (yes/no): ")
+                                    if (New_Value == "yes") or (New_Value == "no"):
+                                        Debug = str(New_Value)
+                                        dfData.iloc[2,1] = Debug
+                                        print("Debug Messages changed to: ", Debug)
+                                    print("\n\ndo you wana change more settings?")
+                                    again = int(input("2 = yes / 1 = no: ")) - 1
+
                                 case "99":
                                     Clear_CLI()
                                     again = 0
@@ -325,9 +345,8 @@ while True:
                         print("Exit to Main Menu")
                         time.sleep(Time_Delay)
 
-        case "99":
+        case "99":  # Exit Program
             Clear_CLI()
             print("Exit Program")
-            time.sleep(Time_Delay) #Short Delay for better UX
-            sys.exit()#Exit Program
-
+            time.sleep(Time_Delay)  # Short Delay for better UX
+            sys.exit()
