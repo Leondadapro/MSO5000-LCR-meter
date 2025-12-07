@@ -12,13 +12,20 @@ import math
 import pyvisa
 import msvcrt
 from enum import Enum
+import Lib.Calculation as c
+import Lib.Settings as s
+import Lib.Debug as d
+
+if(True):
+    print("Loaded module from:", c.__file__)
+    print("Contents:", dir(c))
 
 Rounded     = 0     #Decimal places for rounding
 Time_Delay  = 0     #Time Delay for better UX
 Debug       = 0     #Debug Variable
 Repeat      = 0     #Variable for repeating loops
 
-class State(Enum):
+class S(Enum):
     # All of the text dialog variables
     Start_Text = 1
     Pick_Text1 = 2
@@ -43,139 +50,27 @@ if (True):
     Settings_Path = os.path.join(Base_Dir, "Settings")
     Data_Path = os.path.join(Base_Dir, "Data")
 
-def Settings(Type, What, dfData):   # Calling Settings from Excel File
-    match Type:
-        case "Default":
-
-            file_path = os.path.join(Settings_Path, "Settings_Default.xlsx")
-            dfSettings = pd.read_excel(file_path, header=None, index_col=None)
-            
-            if(What == "Load"): # Load Default Settings
-                Rounded     = int(dfSettings.iloc[0,1])
-                Time_Delay  = float(dfSettings.iloc[1,1])
-                Debug       = str(dfSettings.iloc[2,1])
-
-                file_path_current = os.path.join(Settings_Path, "Settings_Current.xlsx")
-                dfSettingsCurrent = dfSettings
-                dfSettingsCurrent.to_excel(file_path_current, index = False, header=None)
-
-                return Rounded, Time_Delay, Debug
-
-        case "Custom":
-
-            file_path = os.path.join(Settings_Path, "Settings_Custom.xlsx")
-            dfSettings = pd.read_excel(file_path, header=None, index_col=None)
-            
-            if(What == "Load"): # Load Custom Settings
-                Rounded     = int(dfSettings.iloc[0,1])
-                Time_Delay  = float(dfSettings.iloc[1,1])
-                Debug       = str(dfSettings.iloc[2,1])
-
-                file_path_current = os.path.join(Settings_Path, "Settings_Current.xlsx")
-                dfSettingsCurrent = dfSettings
-                dfSettingsCurrent.to_excel(file_path_current, index = False, header=None)
-
-                return Rounded, Time_Delay, Debug
-
-            if(What == "Save"): # Save Custom Settings
-                dfSettings = dfData
-                file_path_current = os.path.join(Settings_Path, "Settings_Current.xlsx")
-                dfSettings.to_excel(file_path, index = False, header=None)
-                dfSettings.to_excel(file_path_current, index = False, header=None)
-
-        case "Current":
-
-            file_path = os.path.join(Settings_Path, "Settings_Current.xlsx")
-            dfSettings = pd.read_excel(file_path, header=None, index_col=None)
-
-            if(What == "Show"): # Show Current Settings
-                print(dfSettings)
-
-            if(What == "Save"): # Save Current Settings
-                dfData.to_excel(file_path, index = False, header=None)
-
-            if(What == "Load"): # Load Current Settings
-                Rounded     = int(dfSettings.iloc[0,1])
-                Time_Delay  = float(dfSettings.iloc[1,1])
-                Debug       = str(dfSettings.iloc[2,1])
-
-                return Rounded, Time_Delay, Debug
-
-def Impedance_Calculation():        # Calculating Impedance, Resistance and Blindwiderstand from Voltage, Current, Frequency and Phase Offset
-    file_path = os.path.join(Data_Path, "Clean.xlsx")   # Cleaned data from MSO5000
-    dfCal = pd.read_excel(file_path)                    # Cleaned data from MSO5000
-    dfCalRounded = dfCal.copy() # Copy of dataframe for rounded values
-    Xmax = dfCal.shape[1]       # Number of columns
-    Ymax = dfCal.shape[0] - 1   # Number of rows
-    X = 0
-    Y = 0
-    if (Debug == "yes"):    # Debug Messages
-        print("Xmax =", Xmax)
-        print("Ymax =", Ymax)
-
-    while (Y <= Ymax):                      #Calculating Impedance, Resistance and Blind for each measurement point
-        Voltage = dfCal.iloc[Y,X]           #reading Voltage
-        Current = dfCal.iloc[Y,X+1]         #reading Current
-        Frequenzy = dfCal.iloc[Y,X+2]       #reading Frequency
-        PhaseOffset = dfCal.iloc[Y, X+3]    #reading Phase Offset
-
-        Impedance_abs = Voltage / Current                                   #Calculating Impedance in Ohm
-        Resistance  = math.cos(math.radians(PhaseOffset)) * Impedance_abs   #Calculating Resistance in Ohm
-        Blind       = math.sin(math.radians(PhaseOffset)) * Impedance_abs   #Calculating Blindwiderstand in Ohm
-        Impedance   = complex(Resistance, Blind)                            #Calculating Complex Impedance in Ohm
-
-        dfCal.iloc[Y,X+4] = Impedance_abs   #Storing Impedance in Ohm
-        dfCal.iloc[Y,X+5] = Impedance       #Complex Impedance in Ohm
-        dfCal.iloc[Y,X+6] = Resistance      #Storing Resistance in Ohm
-        dfCal.iloc[Y,X+7] = Blind           #Storing Blindwiderstand in Ohm
-
-        # Rounding all values to the specified decimal places in settings
-        Rounded_Voltage =       round(Voltage, Rounded)
-        Rounded_Current =       round(Current, Rounded)
-        Rounded_Frequeny =      round(Frequenzy, Rounded)
-        Rounded_PhaseOffset =   round(PhaseOffset, Rounded)
-        Rounded_Impedance_abs = round(Impedance_abs, Rounded)
-        Rounded_Impedance =     round(Resistance, Rounded) + round(Blind, Rounded)*1j
-        Rounded_Resistance =    round(Resistance, Rounded)
-        Rounded_Blind =         round(Blind, Rounded)
-
-        # Storing rounded values in new dataframe
-        dfCalRounded.iloc[Y,X]   = Rounded_Voltage
-        dfCalRounded.iloc[Y,X+1] = Rounded_Current
-        dfCalRounded.iloc[Y,X+2] = Rounded_Frequeny
-        dfCalRounded.iloc[Y,X+3] = Rounded_PhaseOffset
-        dfCalRounded.iloc[Y,X+4] = Rounded_Impedance_abs
-        dfCalRounded.iloc[Y,X+5] = Rounded_Impedance
-        dfCalRounded.iloc[Y,X+6] = Rounded_Resistance
-        dfCalRounded.iloc[Y,X+7] = Rounded_Blind
-
-        Y += 1  #Next Row
-    file_path = os.path.join(Data_Path, "Clean_Calc.xlsx")          # Exporting calculated data to Excel File
-    dfCal.to_excel(file_path, index = False)
-    file_path = os.path.join(Data_Path, "Clean_Calc_Rounded.xlsx")  # Exporting calculated data to Excel File
-    dfCalRounded.to_excel(file_path, index = False)
-
 def TXT_Dialog(n):                  # All of the text dialog stuff
     match n:
-        case State.Start_Text:          #Starting Text
+        case S.Start_Text:          #Starting Text
             print(  "Hello and Welcome to the MSO5000 LCR Measurement Tool\n"
                     "This tool helps you to measure and analyze LCR components with the MSO5000\n\n\n")
 
-        case State.Pick_Text1:          # Main Menu
+        case S.Pick_Text1:          # Main Menu
             print(  "What do u wanna do? (Pick from List)\n\n")
             print(  "1 : Measure LCR Component\n"
                     "2 : Analyze / Calculate existing Measurement\n"
                     "3 : Settings\n"
                     "99: Exit Program\n\n")
 
-        case State.Pick_Text2:          # Analyze / Calculate existing Measurement Menu
+        case S.Pick_Text2:          # Analyze / Calculate existing Measurement Menu
             print(  "What do u wanna do? (Pick from List)\n\n")
             print(  "1 : Calculate Data and export as Excel Files\n"
                     "2 : Plot Data\n"
                     "3 : Both Calculate and Plot Data\n"
                     "99: Go back\n\n")
 
-        case State.Pick_Text3:          # Settings Menu
+        case S.Pick_Text3:          # Settings Menu
             print(  "Settings Menu\n\n"
                     "1 : Load Default Settings\n"
                     "2 : Load Custom Settings\n"
@@ -184,7 +79,7 @@ def TXT_Dialog(n):                  # All of the text dialog stuff
                     "5 : Save Current Settings as Custom Settings\n"
                     "99: Go back\n\n")
 
-        case State.Pick_Text_Setting:   # Settings changing menu
+        case S.Pick_Text_Setting:   # Settings changing menu
             print(  "What Settings do you wanna change?\n\n"
                     "1 : Decimal places for rounding (Current: " + str(Rounded) + ")\n"
                     "2 : Time Delay when going back (Current: " + str(Time_Delay) + "s)\n"
@@ -194,7 +89,7 @@ def TXT_Dialog(n):                  # All of the text dialog stuff
 def Clear_CLI():                    # Clear screen + move cursor to top-left
     print("\033[2J\033[H", end='')
 
-Rounded, Time_Delay, Debug = Settings("Custom", "Load", 0) #Load Current Settings
+Rounded, Time_Delay, Debug = s.Settings("Custom", "Load", 0) #Load Current Settings
 Clear_CLI()
 
 if (True):  # Debug Messages
@@ -204,8 +99,8 @@ if (True):  # Debug Messages
 
 while True: # Main Loop
     Clear_CLI()
-    TXT_Dialog(State.Start_Text)    #Starting Text
-    TXT_Dialog(State.Pick_Text1)    #pick from list text
+    TXT_Dialog(S.Start_Text)    #Starting Text
+    TXT_Dialog(S.Pick_Text1)    #pick from list text
 
     n = input("Your Input: ")       #User Input
     
@@ -223,7 +118,7 @@ while True: # Main Loop
             Repeat = 1
             while (Repeat == 1):
                 Clear_CLI()
-                TXT_Dialog(State.Pick_Text2)            #pick from list text
+                TXT_Dialog(S.Pick_Text2)            #pick from list text
                 User_Input = input("Your Input: ")      #User Input
                 
                 match User_Input:
@@ -231,7 +126,7 @@ while True: # Main Loop
                     case "1": #Calculate Data and export as Excel Files
                         Clear_CLI()
                         print("Calculate Data and export as Excel Files")
-                        Impedance_Calculation()
+                        c.Impedance_Calculation(Rounded, Debug)
 
                     case "2": #Plot Data (WIP)
                         Clear_CLI()
@@ -252,7 +147,7 @@ while True: # Main Loop
             Repeat = 1
             while (Repeat == 1):
                 Clear_CLI()
-                TXT_Dialog(State.Pick_Text3)
+                TXT_Dialog(S.Pick_Text3)
                 User_Input = input("Your Input: ")
 
                 match User_Input:
@@ -260,7 +155,7 @@ while True: # Main Loop
                         Clear_CLI()
                         print("Loaded Default Settings")
 
-                        Rounded, Time_Delay, Debug = Settings("Default", "Load", 0)
+                        Rounded, Time_Delay, Debug = s.Settings("Default", "Load", 0)
 
                         time.sleep(Time_Delay)
 
@@ -268,7 +163,7 @@ while True: # Main Loop
                         Clear_CLI()
                         print("Loaded Custom Settings")
 
-                        Rounded, Time_Delay, Debug = Settings("Custom", "Load", 0)
+                        Rounded, Time_Delay, Debug = s.Settings("Custom", "Load", 0)
 
                         time.sleep(Time_Delay)
 
@@ -276,7 +171,7 @@ while True: # Main Loop
                         Clear_CLI()
                         print("Current Settings:\n\n")
 
-                        Settings("Current", "Show", 0)
+                        s.Settings("Current", "Show", 0)
                         print("\n\nPress anything to go back")
                         msvcrt.getch()
 
@@ -288,7 +183,7 @@ while True: # Main Loop
                             again = 0
                             Clear_CLI()
                             print("Change Settings")
-                            TXT_Dialog(State.Pick_Text_Setting)
+                            TXT_Dialog(S.Pick_Text_Setting)
                             User_Input = input("Your Input: ")
 
                             match User_Input:
@@ -320,7 +215,7 @@ while True: # Main Loop
                                         Debug = str(New_Value)
                                         dfData.iloc[2,1] = Debug
                                         print("Debug Messages changed to: ", Debug)
-                                    print("\n\ndo you wana change more settings?")
+                                    print("\n\ndo you wana change more Settings?")
                                     again = int(input("2 = yes / 1 = no: ")) - 1
 
                                 case "99":
@@ -328,14 +223,14 @@ while True: # Main Loop
                                     again = 0
                                     print("Go back")
                                     time.sleep(Time_Delay)
-                        Settings ("Current", "Save", dfData)
+                        s.Settings ("Current", "Save", dfData)
 
                     case "5":   #Save Current Settings as Custom Settings
                         Clear_CLI()
                         print("Save Current Settings as Custom Settings")
                         file_path = os.path.join(Settings_Path, "Settings_Current.xlsx")
                         dfData = pd.read_excel(file_path, header=None, index_col=None)
-                        Settings("Custom", "Save", dfData)
+                        s.Settings("Custom", "Save", dfData)
                         print("\nCurrent Settings saved as Custom Settings")
                         time.sleep(Time_Delay)
 
