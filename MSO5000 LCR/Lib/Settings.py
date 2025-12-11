@@ -16,10 +16,10 @@ import msvcrt
 from enum import Enum
 
 if (True):  #define Paths
-    Lib_Dir = os.path.dirname(os.path.abspath(__file__))
-    Base_Dir = os.path.dirname(Lib_Dir)
-    Settings_Path = os.path.join(Base_Dir, "Settings")
-    Data_Path = os.path.join(Base_Dir, "Data")
+    Lib_Dir         = os.path.dirname(os.path.abspath(__file__))
+    Base_Dir        = os.path.dirname(Lib_Dir)
+    Settings_Path   = os.path.join(Base_Dir, "Settings")
+    Data_Path       = os.path.join(Base_Dir, "Data")
 
 if(True): #Functions Layer 1
     def Settings(Type, What, dfData):   # Calling Settings from Excel File
@@ -80,8 +80,8 @@ if(True): #Functions Layer 1
 
                     return Rounded, Time_Delay, Debug
 
-if(False): #Functions Layer 2
-    print(1)
+# if(True): #Functions Layer 2
+#     print(1)
 
-if(False): #Functions Layer 3
-     print(1)
+# if(True): #Functions Layer 3
+#      print(1)

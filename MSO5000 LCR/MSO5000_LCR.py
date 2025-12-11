@@ -15,10 +15,7 @@ from enum import Enum
 import Lib.Calculation as c
 import Lib.Settings as s
 import Lib.Debug as d
-
-if(True):
-    print("Loaded module from:", c.__file__)
-    print("Contents:", dir(c))
+import Lib.Misc as m
 
 Rounded     = 0     #Decimal places for rounding
 Time_Delay  = 0     #Time Delay for better UX
@@ -88,14 +85,15 @@ def TXT_Dialog(n):                  # All of the text dialog stuff
 
 def Clear_CLI():                    # Clear screen + move cursor to top-left
     print("\033[2J\033[H", end='')
+def Wait_for_keypress():          # Wait for a keypress
+    print("\nPress anything to continou")
+    msvcrt.getch()
 
 Rounded, Time_Delay, Debug = s.Settings("Custom", "Load", 0) #Load Current Settings
 Clear_CLI()
 
-if (True):  # Debug Messages
-    if (Debug == "yes"):    print("Base Directory:\t\t"  , Base_Dir     )
-    if (Debug == "yes"):    print("Settings Directory:\t", Settings_Path)
-    if (Debug == "yes"):    print("Data Directory:\t\t"  , Data_Path    )
+d.printDir(Debug)
+m.createExcel(0, 0)
 
 while True: # Main Loop
     Clear_CLI()
@@ -172,8 +170,7 @@ while True: # Main Loop
                         print("Current Settings:\n\n")
 
                         s.Settings("Current", "Show", 0)
-                        print("\n\nPress anything to go back")
-                        msvcrt.getch()
+                        Wait_for_keypress()
 
                     case "4":   #Change Settings
                         file_path = os.path.join(Settings_Path, "Settings_Current.xlsx")
