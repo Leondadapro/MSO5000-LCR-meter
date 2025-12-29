@@ -38,7 +38,7 @@ if(True): #Functions Layer 1
         df.insert(X+6 , f"Z_[Ω]",     pd.Series(np.zeros(lenght, dtype=np.complex128)))
         df.insert(X+7 , f"R_[Ω]",     pd.Series(np.zeros(lenght, dtype=np.float64)))
         df.insert(X+8 , f"X_[Ω]",     pd.Series(np.zeros(lenght, dtype=np.float64)))
-        df.insert(X+9 , f"H_[]",      pd.Series(np.zeros(lenght, dtype=np.float64)))
+        df.insert(X+9 , f"H_[1]",      pd.Series(np.zeros(lenght, dtype=np.float64)))
         df.insert(X+10, f"H_[db]",    pd.Series(np.zeros(lenght, dtype=np.float64)))
 
         file_path = os.path.join(Data_Path, "Clean_Test.xlsx")          # Exporting calculated data to Excel File
